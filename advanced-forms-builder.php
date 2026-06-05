@@ -3,7 +3,7 @@
  * Plugin Name:       Advanced Forms Builder
  * Description:       Легковесный и расширяемый конструктор форм для WordPress.
  * Version:           1.0.0
- * Author:            Your Team
+ * Author:            DevScripty
  * Text Domain:       advanced-forms-builder
  * Domain Path:       /languages
  * GitHub Plugin URI: https://github.com/Skripa4illo/advanced-forms-builder.git
