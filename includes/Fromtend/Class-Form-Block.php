@@ -4,15 +4,14 @@ namespace AFB\Frontend;
 class Class_Form_Block {
 
 	public function __construct() {
-		// Само объявление типа блока оставляем на init
+		// Регистрацию самого типа блока оставляем на init
 		add_action( 'init', [ $this, 'register_gutenberg_block' ] );
 
-		// А подключение JS-скрипта переносим на специальный хук редактора!
-		add_action( 'enqueue_block_editor_assets', [ $this, 'enqueue_block_editor_script' ] );
+		// Подключение скрипта переносим на специальный хук редактора блоков
+		add_action( 'enqueue_block_editor_assets', [ $this, 'enqueue_block_assets' ] );
 	}
 
 	public function register_gutenberg_block() {
-		// Регистрируем ТОЛЬКО блок. Связь по имени скрипта в FSE-темах часто отваливается на ранних хуках.
 		register_block_type( 'afb/form-block', [
 			'render_callback' => [ $this, 'render_block_html' ],
 			'attributes'      => [
@@ -24,8 +23,8 @@ class Class_Form_Block {
 		] );
 	}
 
-	public function enqueue_block_editor_script() {
-		// Этот хук гарантирует, что 'wp-blocks', 'wp-element' и др. уже существуют в системе!
+	public function enqueue_block_assets() {
+		// Этот хук гарантирует, что все зависимости (wp.blocks, wp.components) уже созданы в глобальном окне браузера
 		wp_enqueue_script(
 			'afb-form-block-editor',
 			AFB_URL . 'assets/js/block-form.js',

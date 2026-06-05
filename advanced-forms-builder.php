@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name:       Advanced Forms Builder
- * Description:       Легковесный и расширяемый конструктор форм для WordPress. Создавайте любые формы с помощью удобного интерфейса и отображайте их через шорткоды или блоки Gutenberg.
- * Version:           1.0.0ххх
- * Author:            DevScripty!
+ * Description:       Легковесный и расширяемый конструктор форм для WordPress. Создавайте любые формы с помощью удобного интерфейса и отображайте их через блоки Gutenberg.
+ * Version:           1.0.0
+ * Author:            DevScripty
  * Text Domain:       advanced-forms-builder
  * Domain Path:       /languages
  */
@@ -60,6 +60,6 @@ try {
 	error_log( 'Advanced Forms Builder Critical Crash: ' . $e->getMessage() );
 }
 
-add_action( 'admin_notices', function() {
-    echo '<div class="notice notice-success"><p style="color:red; font-size:20px; font-weight:bold;">!!! ПЛАГИН AFB ФИЗИЧЕСКИ ЗАПУЩЕН !!!</p></div>';
-});
+// add_action( 'admin_notices', function() {
+//     echo '<div class="notice notice-success"><p style="color:red; font-size:20px; font-weight:bold;">!!! ПЛАГИН AFB ФИЗИЧЕСКИ ЗАПУЩЕН !!!</p></div>';
+// });
