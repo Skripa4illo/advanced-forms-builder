@@ -31,26 +31,23 @@ class Class_Form_Render {
     }
 
     /**
-     * Генерируем саму HTML-структуру формы
+     * Генерируем HTML-структуру формы
      */
     private function get_form_template( $form_id ) {
         ?>
         <div class="afb-form-wrapper" id="afb-form-<?php echo $form_id; ?>">
-            <form class="afb-generator-form" data-form-id="<?php echo $form_id; ?>" method="POST">
-                <?php wp_nonce_field( 'afb_submit_form_action', 'afb_nonce' ); ?>
+            <form class="afb-generator-form" data-form-id="<?php echo $form_id; ?>">
                 
-                <input type="hidden" name="form_id" value="<?php echo $form_id; ?>">
-                <input type="hidden" name="action" value="afb_send_form">
+                <input type="hidden" class="afb-form-id-field" value="<?php echo $form_id; ?>">
 
-                <### Пример полей (позже они будут тянуться из базы данных) ###>
                 <div class="afb-form-group" style="margin-bottom: 15px;">
                     <label style="display:block; font-weight:bold; margin-bottom:5px;">Ваше имя:</label>
-                    <input type="text" name="user_name" required style="width:100%; padding:8px; border:1px solid #ccc;">
+                    <input type="text" name="fields[user_name]" required style="width:100%; padding:8px; border:1px solid #ccc;">
                 </div>
 
                 <div class="afb-form-group" style="margin-bottom: 15px;">
                     <label style="display:block; font-weight:bold; margin-bottom:5px;">Email:</label>
-                    <input type="email" name="user_email" required style="width:100%; padding:8px; border:1px solid #ccc;">
+                    <input type="email" name="fields[user_email]" required style="width:100%; padding:8px; border:1px solid #ccc;">
                 </div>
 
                 <button type="submit" class="afb-submit-btn" style="padding: 10px 20px; background: #0073aa; color: #fff; border: none; cursor: pointer;">
