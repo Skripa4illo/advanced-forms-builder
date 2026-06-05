@@ -51,15 +51,33 @@ spl_autoload_register( function ( $class ) {
 } );
 
 // ЖЕЛЕЗОБЕТОННАЯ ИНИЦИАЛИЗАЦИЯ ЯДРА (БЕЗ ОБЕРТКИ В ХУКИ)
+// try {
+// 	if ( class_exists( 'AFB\Class_Core' ) ) {
+// 		$plugin = new AFB\Class_Core();
+// 		$plugin->run();
+// 	} else {
+// 		error_log( 'Advanced Forms Builder Error: Class_Core not found.' );
+// 	}
+// } catch ( \Throwable $e ) {
+// 	error_log( 'Advanced Forms Builder Critical Crash: ' . $e->getMessage() );
+// }
+
+// БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ И ДЕБАГ ЯДРА
 try {
-	if ( class_exists( 'AFB\Class_Core' ) ) {
-		$plugin = new AFB\Class_Core();
-		$plugin->run();
-	} else {
-		error_log( 'Advanced Forms Builder Error: Class_Core not found.' );
-	}
+    if ( class_exists( 'AFB\Class_Core' ) ) {
+        $plugin = new AFB\Class_Core();
+        $plugin->run();
+    } else {
+        // Если класс не найден, выводим заметную плашку в админке
+        add_action( 'admin_notices', function() {
+            echo '<div class="notice notice-error"><p style="color:red; font-size:20px; font-weight:bold; padding:10px;">❌ Advanced Forms Builder Error: Class_Core NOT found. Автозагрузчик промахнулся мимо файла!</p></div>';
+        });
+    }
 } catch ( \Throwable $e ) {
-	error_log( 'Advanced Forms Builder Critical Crash: ' . $e->getMessage() );
+    // Если упало внутри самого ядра
+    add_action( 'admin_notices', function() use ( $e ) {
+        echo '<div class="notice notice-error"><p style="color:orange; font-size:20px; font-weight:bold; padding:10px;">⚠️ Advanced Forms Builder Critical Crash: ' . esc_html( $e->getMessage() ) . '</p></div>';
+    });
 }
 
 // add_action( 'admin_notices', function() {
