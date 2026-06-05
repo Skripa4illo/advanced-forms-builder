@@ -35,7 +35,7 @@ spl_autoload_register( function ( $class ) {
 	$last_key = array_key_last( $parts );
 	
 	// Меняем нижние подчеркивания на дефисы в имени файла (Class_Form_Render -> Class-Form-Render)
-	$parts[ $last_key ] = str_replace( '_', '-', $parts[ $last_index ] );
+	$parts[ $last_key ] = str_replace( '_', '-', $parts[ $last_key ] );
 	
 	// Чтобы застраховаться от регистра папок (Frontend vs frontend),
 	// мы можем явно проверить файл. Но самый надежный способ, раз у тебя папка называется "Frontend",
