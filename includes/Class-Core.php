@@ -17,5 +17,8 @@ class Class_Core {
 
 		// Инициализируем обработчик API стандартным для WP способом
 		new Frontend\Class_Form_Handler();
+
+		// Инициализируем сбор формы блоками на фронте
+        new Frontend\Class_Form_Block();
 	}
 }
