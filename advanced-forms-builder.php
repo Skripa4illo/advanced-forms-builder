@@ -6,6 +6,7 @@
  * Author:            Your Team
  * Text Domain:       advanced-forms-builder
  * Domain Path:       /languages
+ * GitHub Plugin URI: https://github.com/Skripa4illo/advanced-forms-builder.git
  */
 
 // Если файл вызван напрямую, прерываем выполнение
