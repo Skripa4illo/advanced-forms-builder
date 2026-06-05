@@ -8,18 +8,18 @@ class Class_Core {
     }
 
     private function load_dependencies() {
-        // Жестко подключаем файл
+        // Жестко подключаем файлы (пока автозагрузчик отдыхает на подстраховке)
+        require_once AFB_PATH . 'includes/frontend/class-form-render.php';
+        require_once AFB_PATH . 'includes/frontend/class-form-handler.php';
         require_once AFB_PATH . 'includes/frontend/class-form-block.php';
         
         if ( is_admin() ) {
             new Admin\Class_Admin_Menu();
         }
 
-        // Запускаем рендеринг шорткодов (тоже через жесткое подключение если надо, но пока оставим так)
-        new frontend\Class_Form_Render();
-        new frontend\Class_Form_Handler();
-
-        // Инициализируем сбор формы блоками — ЖЕСТКО УКАЗЫВАЕМ ПОЛНЫЙ НЕЙМСПЕЙС ОТ КОРНЯ
+        // Инициализируем компоненты АБСОЛЮТНО жестко от корня неймспейса
+        new \AFB\frontend\Class_Form_Render();
+        new \AFB\frontend\Class_Form_Handler();
         new \AFB\frontend\Class_Form_Block();
     }
 }
