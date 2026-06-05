@@ -37,8 +37,11 @@ spl_autoload_register( function ( $class ) {
         $parts[$i] = strtolower( $parts[$i] );
     }
     
-    // 2. Меняем нижние подчеркивания на дефисы в имени файла (Class_Form_Block -> Class-Form-Block)
+    // 2. Меняем нижние подчеркивания на дефисы в имени файла
     $parts[ $last_key ] = str_replace( '_', '-', $parts[ $last_key ] );
+    
+    // СВЕРХВАЖНАЯ СТРОКА: Переводим само имя файла в нижний регистр (Class-Core -> class-core)
+    $parts[ $last_key ] = strtolower( $parts[ $last_key ] );
     
     $file = $base_dir . implode( '/', $parts ) . '.php';
 
