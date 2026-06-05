@@ -48,19 +48,14 @@ spl_autoload_register( function ( $class ) {
 	}
 } );
 
-// БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ ЯДРА
-add_action( 'plugins_loaded', function() {
-	try {
-		// Проверяем физическое существование класса перед созданием объекта
-		if ( class_exists( 'AFB\Class_Core' ) ) {
-			$plugin = new AFB\Class_Core();
-			$plugin->run();
-		} else {
-			// Если класс не найден, пишем ошибку в лог WP, но не вешаем сайт
-			error_log( 'Advanced Forms Builder Error: Class_Core not found.' );
-		}
-	} catch ( \Throwable $e ) {
-		// Перехватываем любые критические ошибки (даже Fatal в PHP 7+)
-		error_log( 'Advanced Forms Builder Critical Crash: ' . $e->getMessage() );
+// ЖЕЛЕЗОБЕТОННАЯ ИНИЦИАЛИЗАЦИЯ ЯДРА (БЕЗ ОБЕРТКИ В ХУКИ)
+try {
+	if ( class_exists( 'AFB\Class_Core' ) ) {
+		$plugin = new AFB\Class_Core();
+		$plugin->run();
+	} else {
+		error_log( 'Advanced Forms Builder Error: Class_Core not found.' );
 	}
-} );
+} catch ( \Throwable $e ) {
+	error_log( 'Advanced Forms Builder Critical Crash: ' . $e->getMessage() );
+}
