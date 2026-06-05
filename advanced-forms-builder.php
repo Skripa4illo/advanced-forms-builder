@@ -6,20 +6,17 @@
  * Author:            DevScripty
  * Text Domain:       advanced-forms-builder
  * Domain Path:       /languages
- * GitHub Plugin URI: https://github.com/Skripa4illo/advanced-forms-builder.git
  */
 
-// Если файл вызван напрямую, прерываем выполнение
-if ( ! defined( 'WPINC' ) ) {
-	die;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
-// Константы для удобства
 define( 'AFB_VERSION', '1.0.0' );
 define( 'AFB_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFB_URL', plugin_dir_url( __FILE__ ) );
 
-// Простейший автозагрузчик (для старта)
+// НАДЕЖНЫЙ АВТОЗАГРУЗЧИК ДЛЯ ЛИНУКС
 spl_autoload_register( function ( $class ) {
 	$prefix = 'AFB\\';
 	$base_dir = AFB_PATH . 'includes/';
@@ -31,31 +28,39 @@ spl_autoload_register( function ( $class ) {
 
 	$relative_class = substr( $class, $len );
 	
-	// Унифицируем слэши для Linux: строго переводим всё в /
+	// Переводим обратные слэши в прямые
 	$relative_class = str_replace( '\\', '/', $relative_class );
 	
-	$file_parts = explode( '/', $relative_class );
-	$last_key = array_key_last( $file_parts );
+	$parts = explode( '/', $relative_class );
+	$last_key = array_key_last( $parts );
 	
-	// Превращаем имя класса из "Class_Activator" в "Class-Activator"
-	$file_parts[ $last_key ] = str_replace( '_', '-', $file_parts[ $last_key ] );
+	// Меняем нижние подчеркивания на дефисы в имени файла (Class_Form_Render -> Class-Form-Render)
+	$parts[ $last_key ] = str_replace( '_', '-', $parts[ $last_index ] );
 	
-	// Собираем полный путь
-	$file = $base_dir . implode( '/', $file_parts ) . '.php';
+	// Чтобы застраховаться от регистра папок (Frontend vs frontend),
+	// мы можем явно проверить файл. Но самый надежный способ, раз у тебя папка называется "Frontend",
+	// это писать вызов класса строго с большой буквы: new Frontend\Class_Form_Render();
+	
+	$file = $base_dir . implode( '/', $parts ) . '.php';
 
 	if ( file_exists( $file ) ) {
 		require_once $file;
 	}
 } );
 
-// Активация и деактивация
-register_activation_hook( __FILE__, function() {
-	AFB\Class_Activator::activate();
+// БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ ЯДРА
+add_action( 'plugins_loaded', function() {
+	try {
+		// Проверяем физическое существование класса перед созданием объекта
+		if ( class_exists( 'AFB\Class_Core' ) ) {
+			$plugin = new AFB\Class_Core();
+			$plugin->run();
+		} else {
+			// Если класс не найден, пишем ошибку в лог WP, но не вешаем сайт
+			error_log( 'Advanced Forms Builder Error: Class_Core not found.' );
+		}
+	} catch ( \Throwable $e ) {
+		// Перехватываем любые критические ошибки (даже Fatal в PHP 7+)
+		error_log( 'Advanced Forms Builder Critical Crash: ' . $e->getMessage() );
+	}
 } );
-
-// Запуск плагина
-function run_advanced_forms_builder() {
-	$plugin = new AFB\Class_Core();
-	$plugin->run();
-}
-run_advanced_forms_builder();
