@@ -30,13 +30,18 @@ spl_autoload_register( function ( $class ) {
 	}
 
 	$relative_class = substr( $class, $len );
-	$file = $base_dir . str_replace( '\\', '/', $relative_class ) . '.php';
-
-	// Изменяем имя файла под стандарт Class-Name.php, если используешь его
-	$file_parts = explode('/', $file);
-	$last_key = array_key_last($file_parts);
-	$file_parts[$last_key] = 'Class-' . $file_parts[$last_key];
-	$file = implode('/', $file_parts);
+	
+	// Унифицируем слэши для Linux: строго переводим всё в /
+	$relative_class = str_replace( '\\', '/', $relative_class );
+	
+	$file_parts = explode( '/', $relative_class );
+	$last_key = array_key_last( $file_parts );
+	
+	// Превращаем имя класса из "Class_Activator" в "Class-Activator"
+	$file_parts[ $last_key ] = str_replace( '_', '-', $file_parts[ $last_key ] );
+	
+	// Собираем полный путь
+	$file = $base_dir . implode( '/', $file_parts ) . '.php';
 
 	if ( file_exists( $file ) ) {
 		require_once $file;
