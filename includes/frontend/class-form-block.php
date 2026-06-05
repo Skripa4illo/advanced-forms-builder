@@ -4,23 +4,22 @@ namespace AFB\frontend;
 class Class_Form_Block {
 
 	public function __construct() {
-		// Регистрируем всё СТРОГО на хук init, когда ядро WP готово принимать блоки
-		add_action( 'init', [ $this, 'register_gutenberg_block' ] );
+		// Возвращаем железобетонный хук подключения ассетов редактора
+		add_action( 'enqueue_block_editor_assets', [ $this, 'register_gutenberg_block' ] );
 	}
 
 	public function register_gutenberg_block() {
-		// Регистрируем скрипт редактора
-		wp_register_script(
+		// Подключаем скрипт напрямую через enqueue, как в нашем успешном тесте
+		wp_enqueue_script(
 			'afb-form-block-editor',
 			AFB_URL . 'assets/js/block-form.js',
 			[ 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components' ],
-			AFB_VERSION,
+			time(), // Сбрасываем кэш при каждом пуше
 			true
 		);
 
-		// Регистрируем тип блока и связываем его со скриптом через 'editor_script'
+		// Регистрируем сам блок
 		register_block_type( 'afb/form-block', [
-			'editor_script'   => 'afb-form-block-editor',
 			'render_callback' => [ $this, 'render_block_html' ],
 			'attributes'      => [
 				'formId' => [
