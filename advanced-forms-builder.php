@@ -32,21 +32,28 @@ spl_autoload_register( function ( $class ) {
     $parts = explode( '/', $relative_class );
     $last_key = array_key_last( $parts );
     
-    // 1. Приводим все промежуточные папки (все элементы, КРОМЕ имени файла) к нижнему регистру
-    for ( $i = 0; $i < $last_key; $i++ ) {
-        $parts[$i] = strtolower( $parts[$i] );
-    }
-    
-    // 2. Меняем нижние подчеркивания на дефисы в имени файла
+    // Меняем нижние подчеркивания на дефисы в имени файла
     $parts[ $last_key ] = str_replace( '_', '-', $parts[ $last_key ] );
     
-    // СВЕРХВАЖНАЯ СТРОКА: Переводим само имя файла в нижний регистр (Class-Core -> class-core)
-    $parts[ $last_key ] = strtolower( $parts[ $last_key ] );
-    
-    $file = $base_dir . implode( '/', $parts ) . '.php';
+    // Вариант 1: Проверяем путь строго в нижнем регистре (как требует WP стандарт)
+    $parts_lowercase = $parts;
+    for ( $i = 0; $i <= $last_key; $i++ ) {
+        $parts_lowercase[$i] = strtolower( $parts_lowercase[$i] );
+    }
+    $file_lowercase = $base_dir . implode( '/', $parts_lowercase ) . '.php';
 
-    if ( file_exists( $file ) ) {
-        require_once $file;
+    if ( file_exists( $file_lowercase ) ) {
+        require_once $file_lowercase;
+        return;
+    }
+
+    // Вариант 2: Если не нашли, проверяем путь с сохранением регистра папок (для папки Admin)
+    $parts[ $last_key ] = strtolower( $parts[ $last_key ] ); // файл всё равно в нижнем регистре
+    $file_as_is = $base_dir . implode( '/', $parts ) . '.php';
+
+    if ( file_exists( $file_as_is ) ) {
+        require_once $file_as_is;
+        return;
     }
 } );
 
