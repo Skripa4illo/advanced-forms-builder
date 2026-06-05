@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name:       Advanced Forms Builder
- * Description:       Легковесный и расширяемый конструктор форм для WordPress.
- * Version:           1.0.0
- * Author:            DevScripty
+ * Description:       Легковесный и расширяемый конструктор форм для WordPress. Создавайте любые формы с помощью удобного интерфейса и отображайте их через шорткоды или блоки Gutenberg.
+ * Version:           1.0.0ххх
+ * Author:            DevScripty!
  * Text Domain:       advanced-forms-builder
  * Domain Path:       /languages
  */
