@@ -64,12 +64,12 @@ try {
 // });
 
 // ТЕСТ: Принудительное подключение скрипта в редактор
-add_action( 'enqueue_block_editor_assets', function() {
-    wp_enqueue_script(
-        'afb-test-block-script',
-        plugin_dir_url( __FILE__ ) . 'assets/js/block-form.js',
-        array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components' ),
-        time(), // сброс кэша версии при каждой перезагрузке
-        true
-    );
-});
+// add_action( 'enqueue_block_editor_assets', function() {
+//     wp_enqueue_script(
+//         'afb-test-block-script',
+//         plugin_dir_url( __FILE__ ) . 'assets/js/block-form.js',
+//         array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components' ),
+//         time(), // сброс кэша версии при каждой перезагрузке
+//         true
+//     );
+// });

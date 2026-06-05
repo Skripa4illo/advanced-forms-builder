@@ -11,14 +11,14 @@ class Class_Core {
 		if ( is_admin() ) {
 			new Admin\Class_Admin_Menu();
 		}
-
+		
 		// Запускаем рендеринг шорткодов
-		new Frontend\Class_Form_Render();
+		new frontend\Class_Form_Render();
 
-		// Инициализируем обработчик API стандартным для WP способом
-		new Frontend\Class_Form_Handler();
+		// Инициализируем обработчик API
+		new frontend\Class_Form_Handler();
 
-		// Инициализируем сбор формы блоками на фронте
-        new Frontend\Class_Form_Block();
+		// Инициализируем сбор формы блоками
+		new frontend\Class_Form_Block();
 	}
 }

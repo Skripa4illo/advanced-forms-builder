@@ -1,5 +1,5 @@
 <?php
-namespace AFB\Frontend;
+namespace AFB\frontend;
 
 class Class_Form_Render {
 
