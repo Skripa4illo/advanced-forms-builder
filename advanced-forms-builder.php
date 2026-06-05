@@ -18,34 +18,33 @@ define( 'AFB_URL', plugin_dir_url( __FILE__ ) );
 
 // НАДЕЖНЫЙ АВТОЗАГРУЗЧИК ДЛЯ ЛИНУКС
 spl_autoload_register( function ( $class ) {
-	$prefix = 'AFB\\';
-	$base_dir = AFB_PATH . 'includes/';
+    $prefix = 'AFB\\';
+    $base_dir = AFB_PATH . 'includes/';
 
-	$len = strlen( $prefix );
-	if ( strncmp( $prefix, $class, $len ) !== 0 ) {
-		return;
-	}
+    $len = strlen( $prefix );
+    if ( strncmp( $prefix, $class, $len ) !== 0 ) {
+        return;
+    }
 
-	$relative_class = substr( $class, $len );
-	
-	// Переводим обратные слэши в прямые
-	$relative_class = str_replace( '\\', '/', $relative_class );
-	
-	$parts = explode( '/', $relative_class );
-	$last_key = array_key_last( $parts );
-	
-	// Меняем нижние подчеркивания на дефисы в имени файла (Class_Form_Render -> Class-Form-Render)
-	$parts[ $last_key ] = str_replace( '_', '-', $parts[ $last_key ] );
-	
-	// Чтобы застраховаться от регистра папок (Frontend vs frontend),
-	// мы можем явно проверить файл. Но самый надежный способ, раз у тебя папка называется "Frontend",
-	// это писать вызов класса строго с большой буквы: new Frontend\Class_Form_Render();
-	
-	$file = $base_dir . implode( '/', $parts ) . '.php';
+    $relative_class = substr( $class, $len );
+    $relative_class = str_replace( '\\', '/', $relative_class );
+    
+    $parts = explode( '/', $relative_class );
+    $last_key = array_key_last( $parts );
+    
+    // 1. Приводим все промежуточные папки (все элементы, КРОМЕ имени файла) к нижнему регистру
+    for ( $i = 0; $i < $last_key; $i++ ) {
+        $parts[$i] = strtolower( $parts[$i] );
+    }
+    
+    // 2. Меняем нижние подчеркивания на дефисы в имени файла (Class_Form_Block -> Class-Form-Block)
+    $parts[ $last_key ] = str_replace( '_', '-', $parts[ $last_key ] );
+    
+    $file = $base_dir . implode( '/', $parts ) . '.php';
 
-	if ( file_exists( $file ) ) {
-		require_once $file;
-	}
+    if ( file_exists( $file ) ) {
+        require_once $file;
+    }
 } );
 
 // ЖЕЛЕЗОБЕТОННАЯ ИНИЦИАЛИЗАЦИЯ ЯДРА (БЕЗ ОБЕРТКИ В ХУКИ)
