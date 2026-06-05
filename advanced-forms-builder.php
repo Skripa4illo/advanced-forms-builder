@@ -62,3 +62,14 @@ try {
 // add_action( 'admin_notices', function() {
 //     echo '<div class="notice notice-success"><p style="color:red; font-size:20px; font-weight:bold;">!!! ПЛАГИН AFB ФИЗИЧЕСКИ ЗАПУЩЕН !!!</p></div>';
 // });
+
+// ТЕСТ: Принудительное подключение скрипта в редактор
+add_action( 'enqueue_block_editor_assets', function() {
+    wp_enqueue_script(
+        'afb-test-block-script',
+        plugin_dir_url( __FILE__ ) . 'assets/js/block-form.js',
+        array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components' ),
+        time(), // сброс кэша версии при каждой перезагрузке
+        true
+    );
+});
