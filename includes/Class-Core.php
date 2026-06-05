@@ -9,11 +9,15 @@ class Class_Core {
 	}
 
 	private function load_dependencies() {
-		// Здесь мы инициализируем компоненты
 		if ( is_admin() ) {
 			new Admin\Class_Admin_Menu();
-		} else {
+		}
+
+		// REST API запросы в WP не считаются за is_admin(), 
+		// поэтому инициализируем обработчик для фронтенда и API
+		if ( ! is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
 			new Frontend\Class_Form_Render();
+			new Frontend\Class_Form_Handler(); // Подключаем наш новый обработчик сабмитов
 		}
 	}
 
