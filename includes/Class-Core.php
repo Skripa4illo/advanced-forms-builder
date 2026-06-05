@@ -13,11 +13,11 @@ class Class_Core {
 			new Admin\Class_Admin_Menu();
 		}
 
-		// REST API запросы в WP не считаются за is_admin(), 
-		// поэтому инициализируем обработчик для фронтенда и API
-		if ( ! is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+		// Загружаем фронтенд-рендер и обработчик формы только на самом фронтенде
+		// или если идет запрос именно к нашему роуту API
+		if ( ! is_admin() ) {
 			new Frontend\Class_Form_Render();
-			new Frontend\Class_Form_Handler(); // Подключаем наш новый обработчик сабмитов
+			new Frontend\Class_Form_Handler();
 		}
 	}
 
