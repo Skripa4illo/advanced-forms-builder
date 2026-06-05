@@ -59,3 +59,7 @@ try {
 } catch ( \Throwable $e ) {
 	error_log( 'Advanced Forms Builder Critical Crash: ' . $e->getMessage() );
 }
+
+add_action( 'admin_notices', function() {
+    echo '<div class="notice notice-success"><p style="color:red; font-size:20px; font-weight:bold;">!!! ПЛАГИН AFB ФИЗИЧЕСКИ ЗАПУЩЕН !!!</p></div>';
+});
