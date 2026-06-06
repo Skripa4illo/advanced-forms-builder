@@ -44,7 +44,7 @@ class Class_Admin_Menu {
             <hr>
 
             <div style="background: #fff; padding: 20px; max-width: 500px; border: 1px solid #ccd0d4; margin-top: 20px; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
-                <form id="afb-admin-builder-form">
+                <form id="afb-admin-builder-form" onsubmit="event.preventDefault(); return false;">
                     <div style="margin-bottom: 15px;">
                         <label style="display:block; font-weight:bold; margin-bottom:5px;">Название новой формы:</label>
                         <input type="text" id="afb-new-form-title" placeholder="Например: Форма в подвале" style="width:100%; padding: 8px;" required>

@@ -16,11 +16,13 @@ document.addEventListener('DOMContentLoaded', function() {
             { type: "textarea", name: "client_comment", label: "Комментарий к заказу", required: false, placeholder: "Ваш текст..." }
         ];
 
+        // Включаем статус загрузки
         responseDiv.style.display = 'block';
         responseDiv.style.backgroundColor = '#f0f0f1';
         responseDiv.style.color = '#1d2327';
         responseDiv.innerText = 'Сохранение формы...';
 
+        // Честный запрос к нашему REST API
         fetch('/wp-json/afb/v1/forms/save', {
             method: 'POST',
             headers: {
@@ -28,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-WP-Nonce': typeof wpApiSettings !== 'undefined' ? wpApiSettings.nonce : ''
             },
             body: JSON.stringify({
-                id: 0, // 0 — создаем новую запись
+                id: 0, // 0 — создаем новую запись в таблице wp_afb_forms
                 title: formTitle,
                 form_fields: mockupFields
             })
