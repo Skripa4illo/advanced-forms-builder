@@ -46,13 +46,14 @@ class Class_Form_Render {
             return;
         }
 
-        // Декодируем поля из JSON в PHP-массив
-        $fields = json_decode( $form->fields, true );
+        // Декодируем поля из ПРАВИЛЬНОЙ колонки базы данных (form_fields)
+        $fields = isset( $form->form_fields ) ? json_decode( $form->form_fields, true ) : [];
 
         if ( empty( $fields ) || ! is_array( $fields ) ) {
-            echo '<p style="color:orange;">У формы нет настроенных полей.</p>';
+            echo '<p style="color:orange;">У формы нет настроенных полей. (Проверь имя колонки: ' . esc_html( json_encode( array_keys( (array) $form ) ) ) . ')</p>';
             return;
         }
+        
         ?>
         <div class="afb-form-wrapper" id="afb-form-<?php echo $form_id; ?>">
             <h3 class="afb-form-title"><?php echo esc_html( $form->title ); ?></h3>
