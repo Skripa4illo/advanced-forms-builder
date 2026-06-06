@@ -5,6 +5,8 @@ class Class_Admin_Menu {
 
     public function __construct() {
         add_action( 'admin_menu', [ $this, 'add_menu_pages' ] );
+		// 1. Вешаем правильный хук WordPress для подключения ассетов в админку
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
     }
 
     public function add_menu_pages() {
@@ -31,13 +33,35 @@ class Class_Admin_Menu {
     }
 
     /**
-     * Рендеринг главной страницы плагина (Конструктор)
+     * Рендеринг главной страницы плагина (Наш Конструктор)
      */
     public function render_admin_page() {
         ?>
         <div class="wrap">
-            <h1><?php _e( 'Advanced Forms Builder', 'advanced-forms-builder' ); ?></h1>
-            <p><?php _e( 'Добро пожаловать. Здесь будет Vue.js/React конструктор форм.', 'advanced-forms-builder' ); ?></p>
+            <h1><?php _e( 'Advanced Forms Builder — Конструктор', 'advanced-forms-builder' ); ?></h1>
+            <p>Тестирование бэкенд-слоя сохранения структуры формы.</p>
+            
+            <hr>
+
+            <div style="background: #fff; padding: 20px; max-width: 500px; border: 1px solid #ccd0d4; margin-top: 20px; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
+                <form id="afb-admin-builder-form">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display:block; font-weight:bold; margin-bottom:5px;">Название новой формы:</label>
+                        <input type="text" id="afb-new-form-title" placeholder="Например: Форма в подвале" style="width:100%; padding: 8px;" required>
+                    </div>
+
+                    <div style="margin-bottom: 20px; background: #f0f0f1; padding: 15px; border-left: 4px solid #0073aa;">
+                        <strong style="display:block; margin-bottom: 5px;">Сгенерированная структура полей (JSON):</strong>
+                        <small style="color: #646970;">При клике на «Сохранить» мы отправим на бэкенд массив из двух инпутов: Компанию и Телефон.</small>
+                    </div>
+
+                    <button type="submit" class="button button-primary button-large" id="afb-save-form-btn">
+                        Создать форму в БД
+                    </button>
+                </form>
+
+                <div id="afb-builder-response" style="margin-top: 15px; padding: 10px; display: none; font-weight: bold;"></div>
+            </div>
         </div>
         <?php
     }
@@ -65,5 +89,27 @@ class Class_Admin_Menu {
             </form>
         </div>
         <?php
+    }
+
+	/**
+     * Подключаем скрипты для админки плагина
+     */
+    public function enqueue_admin_assets( $hook ) {
+        // Загружаем скрипты ТОЛЬКО на страницах нашего плагина, чтобы не спамить на чужих экранах WP
+        if ( strpos( $hook, 'afb-forms' ) === false && strpos( $hook, 'afb-entries' ) === false ) {
+            return;
+        }
+
+        // Встроенный скрипт ядра WP, который автоматом создаст window.wpApiSettings с валидным токеном защиты
+        wp_enqueue_script( 'wp-api-js' );
+
+        // Наш кастомный JS, который управляет формой конструктора
+        wp_enqueue_script(
+            'afb-admin-builder-script',
+            AFB_URL . 'assets/js/admin-builder.js',
+            [ 'jquery', 'wp-api-js' ], // wp-api-js в зависимостях гарантирует, что токен подгрузится РАНЬШЕ нашего скрипта
+            time(),
+            true
+        );
     }
 }
