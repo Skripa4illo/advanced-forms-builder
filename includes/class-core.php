@@ -14,6 +14,7 @@ class Class_Core {
         require_once AFB_PATH . 'includes/frontend/class-form-render.php';
         require_once AFB_PATH . 'includes/frontend/class-form-handler.php';
         require_once AFB_PATH . 'includes/frontend/class-form-block.php';
+        require_once AFB_PATH . 'includes/admin/class-entries-list-table.php';
         
         if ( is_admin() ) {
             new Admin\Class_Admin_Menu();
