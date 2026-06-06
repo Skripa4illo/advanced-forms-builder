@@ -4,14 +4,16 @@ namespace AFB\Admin;
 class Class_Admin_Menu {
 
     public function __construct() {
+        // Хук admin_menu инициализируется вовремя, оставляем его здесь
         add_action( 'admin_menu', [ $this, 'add_menu_pages' ] );
-		// 1. Вешаем правильный хук WordPress для подключения ассетов в админку
-        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
     }
 
+    /**
+     * Регистрируем страницы меню
+     */
     public function add_menu_pages() {
-        // Главная страница плагина
-        add_menu_page(
+        // Главная страница плагина (Конструктор)
+        $main_page = add_menu_page(
             __( 'AFB Forms', 'advanced-forms-builder' ),
             __( 'AFB Forms', 'advanced-forms-builder' ),
             'manage_options',
@@ -21,19 +23,54 @@ class Class_Admin_Menu {
             30
         );
 
-        // Дочерняя страница: Список заявок (Entries)
-        add_submenu_page(
-            'afb-forms', // Родитеский слаг меню
+        // Дочерняя страница (Заявки)
+        $sub_page = add_submenu_page(
+            'afb-forms', 
             __( 'Заявки', 'advanced-forms-builder' ),
             __( 'Заявки', 'advanced-forms-builder' ),
             'manage_options',
-            'afb-entries', // Слаг этой подстраницы
-            [ $this, 'render_entries_page' ] // Колбэк рендеринга
+            'afb-entries', 
+            [ $this, 'render_entries_page' ] 
+        );
+
+        // Используем load-{$page_handle} — это железобетонный способ сказать WP:
+        // "Подключи скрипты только тогда, когда админ зашел именно на эту страницу"
+        add_action( "load-{$main_page}", [ $this, 'register_builder_assets' ] );
+        add_action( "load-{$sub_page}", [ $this, 'register_builder_assets' ] );
+    }
+
+    /**
+     * Прослойка, которая гарантирует вызов admin_enqueue_scripts в правильный момент времени
+     */
+    public function register_builder_assets() {
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
+    }
+
+    /**
+     * Подключаем скрипты для админки плагина
+     */
+    public function enqueue_admin_assets( $hook ) {
+        // На всякий случай выведем хук в консоль, чтобы убедиться, что всё завелось
+        echo "<script>console.log('AFB Проверка: Скрипты успешно подключены на хуке: " . esc_js( $hook ) . "');</script>";
+
+        // Системный скрипт WP, который создаст window.wpApiSettings с актуальным nonce
+        wp_enqueue_script( 'wp-api-js' );
+
+        // Вычисляем точный URL к папке assets/js относительно текущего файла
+        $plugin_root_url = plugin_dir_url( dirname( dirname( __FILE__ ) ) );
+        $js_file_url     = $plugin_root_url . 'assets/js/admin-builder.js';
+
+        wp_enqueue_script(
+            'afb-admin-builder-script',
+            $js_file_url,
+            [ 'jquery', 'wp-api-js' ],
+            time(), // Сброс кэша Hostinger при каждом обновлении страницы
+            true
         );
     }
 
     /**
-     * Рендеринг главной страницы плагина (Наш Конструктор)
+     * Рендеринг главной страницы плагина (Конструктор)
      */
     public function render_admin_page() {
         ?>
@@ -70,7 +107,6 @@ class Class_Admin_Menu {
      * Рендеринг страницы со списком заявок через WP_List_Table
      */
     public function render_entries_page() {
-        // Подключаем наш класс таблицы (Убедись, что файл ядра core.php делает require этого файла)
         require_once AFB_PATH . 'includes/admin/class-entries-list-table.php';
 
         $entries_table = new Class_Entries_List_Table();
@@ -82,51 +118,9 @@ class Class_Admin_Menu {
 
             <form method="get">
                 <input type="hidden" name="page" value="afb-entries" />
-                <?php
-                // Выводим саму таблицу
-                $entries_table->display();
-                ?>
+                <?php $entries_table->display(); ?>
             </form>
         </div>
         <?php
-    }
-
-	/**
-     * Подключаем скрипты для админки плагина
-     */
-    public function enqueue_admin_assets( $hook ) {
-		
-		// Выведем имя хука в консоль браузера, чтобы узнать его точное имя на будущее!
-        echo "<script>console.log('Текущий WP Hook: " . esc_js( $hook ) . "');</script>";
-        
-		// Загружаем скрипты ТОЛЬКО на страницах нашего плагина, чтобы не спамить на чужих экранах WP
-        // if ( strpos( $hook, 'afb-forms' ) === false && strpos( $hook, 'afb-entries' ) === false ) {
-        //     return;
-        // }
-
-        // Встроенный скрипт ядра WP, который автоматом создаст window.wpApiSettings с валидным токеном защиты
-        wp_enqueue_script( 'wp-api-js' );
-		
-		// Вычисляем точный URL к папке assets/js относительно текущего файла class-admin-menu.php
-        // dirname( __FILE__ ) указывает на includes/admin, поднимаемся на уровень выше к корню плагина
-        $plugin_root_url = plugin_dir_url( dirname( dirname( __FILE__ ) ) );
-        $js_file_url     = $plugin_root_url . 'assets/js/admin-builder.js';
-		
-		wp_enqueue_script(
-            'afb-admin-builder-script',
-            $js_file_url,
-            [ 'jquery', 'wp-api-js' ],
-            time(), // Защита от кэширования браузером
-            true
-        );
-
-        // Наш кастомный JS, который управляет формой конструктора
-        // wp_enqueue_script(
-        //     'afb-admin-builder-script',
-        //     AFB_URL . 'assets/js/admin-builder.js',
-        //     [ 'jquery', 'wp-api-js' ], // wp-api-js в зависимостях гарантирует, что токен подгрузится РАНЬШЕ нашего скрипта
-        //     time(),
-        //     true
-        // );
     }
 }
