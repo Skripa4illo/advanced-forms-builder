@@ -4,16 +4,11 @@ namespace AFB\Admin;
 class Class_Admin_Menu {
 
     public function __construct() {
-        // Хук admin_menu инициализируется вовремя, оставляем его здесь
         add_action( 'admin_menu', [ $this, 'add_menu_pages' ] );
     }
 
-    /**
-     * Регистрируем страницы меню
-     */
     public function add_menu_pages() {
-        // Главная страница плагина (Конструктор)
-        $main_page = add_menu_page(
+        add_menu_page(
             __( 'AFB Forms', 'advanced-forms-builder' ),
             __( 'AFB Forms', 'advanced-forms-builder' ),
             'manage_options',
@@ -23,8 +18,7 @@ class Class_Admin_Menu {
             30
         );
 
-        // Дочерняя страница (Заявки)
-        $sub_page = add_submenu_page(
+        add_submenu_page(
             'afb-forms', 
             __( 'Заявки', 'advanced-forms-builder' ),
             __( 'Заявки', 'advanced-forms-builder' ),
@@ -32,47 +26,14 @@ class Class_Admin_Menu {
             'afb-entries', 
             [ $this, 'render_entries_page' ] 
         );
-
-        // Используем load-{$page_handle} — это железобетонный способ сказать WP:
-        // "Подключи скрипты только тогда, когда админ зашел именно на эту страницу"
-        add_action( "load-{$main_page}", [ $this, 'register_builder_assets' ] );
-        add_action( "load-{$sub_page}", [ $this, 'register_builder_assets' ] );
-    }
-
-    /**
-     * Прослойка, которая гарантирует вызов admin_enqueue_scripts в правильный момент времени
-     */
-    public function register_builder_assets() {
-        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
-    }
-
-    /**
-     * Подключаем скрипты для админки плагина
-     */
-    public function enqueue_admin_assets( $hook ) {
-        // На всякий случай выведем хук в консоль, чтобы убедиться, что всё завелось
-        echo "<script>console.log('AFB Проверка: Скрипты успешно подключены на хуке: " . esc_js( $hook ) . "');</script>";
-
-        // Системный скрипт WP, который создаст window.wpApiSettings с актуальным nonce
-        wp_enqueue_script( 'wp-api-js' );
-
-        // Вычисляем точный URL к папке assets/js относительно текущего файла
-        $plugin_root_url = plugin_dir_url( dirname( dirname( __FILE__ ) ) );
-        $js_file_url     = $plugin_root_url . 'assets/js/admin-builder.js';
-
-        wp_enqueue_script(
-            'afb-admin-builder-script',
-            $js_file_url,
-            [ 'jquery', 'wp-api-js' ],
-            time(), // Сброс кэша Hostinger при каждом обновлении страницы
-            true
-        );
     }
 
     /**
      * Рендеринг главной страницы плагина (Конструктор)
      */
     public function render_admin_page() {
+        // Жестко вешаем вывод JS-кода в футер ТОЛЬКО этой страницы админки
+        add_action( 'admin_print_footer_scripts', [ $this, 'render_inline_js' ] );
         ?>
         <div class="wrap">
             <h1><?php _e( 'Advanced Forms Builder — Конструктор', 'advanced-forms-builder' ); ?></h1>
@@ -100,6 +61,88 @@ class Class_Admin_Menu {
                 <div id="afb-builder-response" style="margin-top: 15px; padding: 10px; display: none; font-weight: bold;"></div>
             </div>
         </div>
+        <?php
+    }
+
+    /**
+     * Прямой инжект скрипта в подвал WP (Обход всех багов очередей)
+     */
+    public function render_inline_js() {
+        ?>
+        <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('AFB ВНИМАНИЕ: Скрипт конструктора успешно инициализирован в футере!');
+
+            const builderForm = document.getElementById('afb-admin-builder-form');
+            const responseDiv = document.getElementById('afb-builder-response');
+
+            if (!builderForm) {
+                console.log('Форма конструктора не найдена на этой странице');
+                return;
+            }
+
+            builderForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                console.log('Кнопка нажата, собираем JSON...');
+
+                const formTitle = document.getElementById('afb-new-form-title').value;
+
+                const mockupFields = [
+                    { type: "text", name: "client_company", label: "Название компании", required: true, placeholder: "ООО Ромашка" },
+                    { type: "text", name: "client_phone", label: "Номер телефона", required: true, placeholder: "+7 (999) 000-00-00" },
+                    { type: "textarea", name: "client_comment", label: "Комментарий к заказу", required: false, placeholder: "Текст из конструктора" }
+                ];
+
+                responseDiv.style.display = 'block';
+                responseDiv.style.backgroundColor = '#f0f0f1';
+                responseDiv.style.color = '#1d2327';
+                responseDiv.innerText = 'Сохранение формы...';
+
+                // Пытаемся вытащить nonce из стандартных скрытых полей WP на этой странице
+                let wpNonce = '';
+                if (typeof wpApiSettings !== 'undefined') {
+                    wpNonce = wpApiSettings.nonce;
+                } else {
+                    const wpInlineNonce = document.getElementById('_wpnonce') || document.getElementById('wp-comment-nonce');
+                    wpNonce = wpInlineNonce ? wpInlineNonce.value : '';
+                }
+
+                fetch('/wp-json/afb/v1/forms/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpNonce
+                    },
+                    body: JSON.stringify({
+                        id: 0,
+                        title: formTitle,
+                        form_fields: mockupFields
+                    })
+                })
+                .then(res => {
+                    console.log('Статус ответа сервера:', res.status);
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        responseDiv.style.backgroundColor = '#edfaef';
+                        responseDiv.style.color = '#00a32a';
+                        responseDiv.innerHTML = `🎉 Успех! ${data.message} <br>Создан новый Form ID: <strong>${data.id}</strong>`;
+                        builderForm.reset();
+                    } else {
+                        responseDiv.style.backgroundColor = '#fcf0f1';
+                        responseDiv.style.color = '#d63638';
+                        responseDiv.innerText = data.error || 'Произошла ошибка при сохранении.';
+                    }
+                })
+                .catch(err => {
+                    responseDiv.style.backgroundColor = '#fcf0f1';
+                    responseDiv.style.color = '#d63638';
+                    responseDiv.innerText = 'Сбой запроса: ' + err.message;
+                });
+            });
+        });
+        </script>
         <?php
     }
 
