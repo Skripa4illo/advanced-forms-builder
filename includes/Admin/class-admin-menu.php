@@ -35,7 +35,7 @@ class Class_Admin_Menu {
      * Логика сохранения через проверенный временем admin-ajax.php
      */
     public function handle_ajax_save_form() {
-        // Проверяем безопасность (Nonce) для AJAX
+        // Проверяем безопасность (Nonce) для AJAX по заветам WP
         check_ajax_referer( 'afb_ajax_builder_action', 'security' );
 
         // Проверяем права админа
@@ -46,30 +46,27 @@ class Class_Admin_Menu {
         global $wpdb;
         $table_forms = $wpdb->prefix . 'afb_forms';
 
-        // Читаем сырой JSON из тела запроса (fetch)
-        $json_input = file_get_contents( 'php://input' );
-        $params     = json_decode( $json_input, true );
-
-        $form_id = isset( $params['id'] ) ? absint( $params['id'] ) : 0;
-        $title   = isset( $params['title'] ) ? sanitize_text_field( $params['title'] ) : '';
-        $fields  = isset( $params['form_fields'] ) ? $params['form_fields'] : [];
+        // Теперь данные гарантированно лежат в $_POST!
+        $form_id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+        $title   = isset( $_POST['title'] ) ? sanitize_text_field( $_POST['title'] ) : '';
+        
+        // Поля прилетят в виде JSON-строки, берем как есть или валидируем
+        $json_fields = isset( $_POST['form_fields'] ) ? wp_unslash( $_POST['form_fields'] ) : '[]';
 
         if ( empty( $title ) ) {
             wp_send_json_error( [ 'error' => 'Название формы обязательно' ], 400 );
         }
 
-        $json_fields = wp_json_encode( $fields );
-
         $data_to_save = [
             'title'       => $title,
-            'form_fields' => $json_fields,
+            'form_fields' => $json_fields, // Уже готовая валидная JSON-строка со фронта
             'created_at'  => current_time( 'mysql' )
         ];
 
         if ( $form_id > 0 ) {
             $wpdb->update( $table_forms, $data_to_save, [ 'id' => $form_id ] );
             wp_send_json_success( [ 'message' => 'Форма успешно обновлена!', 'id' => $form_id ] );
-        } {
+        } else {
             $inserted = $wpdb->insert( $table_forms, $data_to_save );
             if ( ! $inserted ) {
                 wp_send_json_error( [ 'error' => 'Ошибка БД при вставке' ], 500 );
@@ -77,7 +74,7 @@ class Class_Admin_Menu {
             wp_send_json_success( [ 'message' => 'Новая форма успешно создана!', 'id' => $wpdb->insert_id ] );
         }
     }
-
+	
     /**
      * Рендеринг главной страницы плагина (Конструктор)
      */
@@ -117,7 +114,7 @@ class Class_Admin_Menu {
     }
 
     /**
-     * JS-код, перенаправленный на admin-ajax.php
+     * JS-код, адаптированный под классический формат admin-ajax.php
      */
     public function render_inline_js() {
         ?>
@@ -146,33 +143,41 @@ class Class_Admin_Menu {
                 responseDiv.style.color = '#1d2327';
                 responseDiv.innerText = 'Сохранение формы...';
 
-                // Стучимся на стандартный URL AJAX-ядра WP, подмешивая экшен в параметры строки
-                fetch('ajaxurl' in window ? ajaxurl : '/wp-admin/admin-ajax.php?action=afb_save_form_builder&security=' + nonceVal, {
+                // Формируем данные в классическом формате x-www-form-urlencoded
+                const formData = new URLSearchParams();
+                formData.append('action', 'afb_save_form_builder');
+                formData.append('security', nonceVal);
+                formData.append('id', '0');
+                formData.append('title', formTitle);
+                formData.append('form_fields', JSON.stringify(mockupFields)); // Сериализуем массив полей в JSON-строку
+
+                // Шлем запрос на admin-ajax.php
+                const ajaxUrl = 'ajaxurl' in window ? ajaxurl : '/wp-admin/admin-ajax.php';
+
+                fetch(ajaxUrl, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
                     },
-                    body: JSON.stringify({
-                        id: 0,
-                        title: formTitle,
-                        form_fields: mockupFields
-                    })
+                    body: formData.toString()
                 })
                 .then(res => res.json())
                 .then(resData => {
-                    // WordPress AJAX возвращает структуру { success: true/false, data: { ... } }
                     if (resData.success) {
+                        responseDiv.style.style.display = 'block';
                         responseDiv.style.backgroundColor = '#edfaef';
                         responseDiv.style.color = '#00a32a';
                         responseDiv.innerHTML = `🎉 Успех! ${resData.data.message} <br>Создан Form ID: <strong>${resData.data.id}</strong>`;
                         builderForm.reset();
                     } else {
+                        responseDiv.style.style.display = 'block';
                         responseDiv.style.backgroundColor = '#fcf0f1';
                         responseDiv.style.color = '#d63638';
                         responseDiv.innerText = (resData.data && resData.data.error) ? resData.data.error : 'Ошибка сохранения.';
                     }
                 })
                 .catch(err => {
+                    responseDiv.style.style.display = 'block';
                     responseDiv.style.backgroundColor = '#fcf0f1';
                     responseDiv.style.color = '#d63638';
                     responseDiv.innerText = 'Сбой сети: ' + err.message;
