@@ -5,6 +5,9 @@ class Class_Admin_Menu {
 
     public function __construct() {
         add_action( 'admin_menu', [ $this, 'add_menu_pages' ] );
+
+        // Регистрируем обработчик AJAX для авторизованных админов
+        add_action( 'wp_ajax_afb_save_form_builder', [ $this, 'handle_ajax_save_form' ] );
     }
 
     public function add_menu_pages() {
@@ -29,20 +32,67 @@ class Class_Admin_Menu {
     }
 
     /**
-     * Рендеринг главной страницы плагина (Наш Конструктор)
+     * Логика сохранения через проверенный временем admin-ajax.php
+     */
+    public function handle_ajax_save_form() {
+        // Проверяем безопасность (Nonce) для AJAX
+        check_ajax_referer( 'afb_ajax_builder_action', 'security' );
+
+        // Проверяем права админа
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'error' => 'У вас недостаточно прав' ], 403 );
+        }
+
+        global $wpdb;
+        $table_forms = $wpdb->prefix . 'afb_forms';
+
+        // Читаем сырой JSON из тела запроса (fetch)
+        $json_input = file_get_contents( 'php://input' );
+        $params     = json_decode( $json_input, true );
+
+        $form_id = isset( $params['id'] ) ? absint( $params['id'] ) : 0;
+        $title   = isset( $params['title'] ) ? sanitize_text_field( $params['title'] ) : '';
+        $fields  = isset( $params['form_fields'] ) ? $params['form_fields'] : [];
+
+        if ( empty( $title ) ) {
+            wp_send_json_error( [ 'error' => 'Название формы обязательно' ], 400 );
+        }
+
+        $json_fields = wp_json_encode( $fields );
+
+        $data_to_save = [
+            'title'       => $title,
+            'form_fields' => $json_fields,
+            'created_at'  => current_time( 'mysql' )
+        ];
+
+        if ( $form_id > 0 ) {
+            $wpdb->update( $table_forms, $data_to_save, [ 'id' => $form_id ] );
+            wp_send_json_success( [ 'message' => 'Форма успешно обновлена!', 'id' => $form_id ] );
+        } {
+            $inserted = $wpdb->insert( $table_forms, $data_to_save );
+            if ( ! $inserted ) {
+                wp_send_json_error( [ 'error' => 'Ошибка БД при вставке' ], 500 );
+            }
+            wp_send_json_success( [ 'message' => 'Новая форма успешно создана!', 'id' => $wpdb->insert_id ] );
+        }
+    }
+
+    /**
+     * Рендеринг главной страницы плагина (Конструктор)
      */
     public function render_admin_page() {
         ?>
         <div class="wrap">
             <h1><?php _e( 'Advanced Forms Builder — Конструктор', 'advanced-forms-builder' ); ?></h1>
-            <p>Тестирование бэкенд-слоя сохранения структуры формы.</p>
+            <p>Тестирование бэкенд-слоя сохранения структуры формы (через AJAX).</p>
             
             <hr>
 
             <div style="background: #fff; padding: 20px; max-width: 500px; border: 1px solid #ccd0d4; margin-top: 20px; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
                 <form id="afb-admin-builder-form" onsubmit="event.preventDefault(); return false;">
                     
-                    <input type="hidden" id="afb_admin_rest_nonce" value="<?php echo wp_create_nonce( 'wp_rest' ); ?>">
+                    <?php wp_nonce_field( 'afb_ajax_builder_action', 'afb_ajax_nonce' ); ?>
 
                     <div style="margin-bottom: 15px;">
                         <label style="display:block; font-weight:bold; margin-bottom:5px;">Название новой формы:</label>
@@ -63,37 +113,32 @@ class Class_Admin_Menu {
             </div>
         </div>
         <?php
-        // Подключаем JS
         $this->render_inline_js();
     }
-	
+
     /**
-     * Прямой инжект скрипта в подвал WP (Обход всех багов очередей)
+     * JS-код, перенаправленный на admin-ajax.php
      */
     public function render_inline_js() {
         ?>
         <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('AFB ВНИМАНИЕ: Скрипт конструктора успешно инициализирован в футере!');
+            console.log('AFB Конструктор: AJAX-режим готов.');
 
             const builderForm = document.getElementById('afb-admin-builder-form');
             const responseDiv = document.getElementById('afb-builder-response');
 
-            if (!builderForm) {
-                console.log('Форма конструктора не найдена на этой странице');
-                return;
-            }
+            if (!builderForm) return;
 
             builderForm.addEventListener('submit', function(e) {
                 e.preventDefault();
-                console.log('Кнопка нажата, собираем JSON...');
 
                 const formTitle = document.getElementById('afb-new-form-title').value;
+                const nonceVal = document.getElementById('afb_ajax_nonce') ? document.getElementById('afb_ajax_nonce').value : '';
 
                 const mockupFields = [
                     { type: "text", name: "client_company", label: "Название компании", required: true, placeholder: "ООО Ромашка" },
-                    { type: "text", name: "client_phone", label: "Номер телефона", required: true, placeholder: "+7 (999) 000-00-00" },
-                    { type: "textarea", name: "client_comment", label: "Комментарий к заказу", required: false, placeholder: "Текст из конструктора" }
+                    { type: "text", name: "client_phone", label: "Номер телефона", required: true, placeholder: "+7 (999) 000-00-00" }
                 ];
 
                 responseDiv.style.display = 'block';
@@ -101,20 +146,11 @@ class Class_Admin_Menu {
                 responseDiv.style.color = '#1d2327';
                 responseDiv.innerText = 'Сохранение формы...';
 
-                // Пытаемся вытащить nonce из стандартных скрытых полей WP на этой странице
-                let wpNonce = '';
-                if (typeof wpApiSettings !== 'undefined') {
-                    wpNonce = wpApiSettings.nonce;
-                } else {
-                    const wpInlineNonce = document.getElementById('_wpnonce') || document.getElementById('wp-comment-nonce');
-                    wpNonce = wpInlineNonce ? wpInlineNonce.value : '';
-                }
-
-                fetch('/wp-json/afb/v1/forms/save', {
+                // Стучимся на стандартный URL AJAX-ядра WP, подмешивая экшен в параметры строки
+                fetch('ajaxurl' in window ? ajaxurl : '/wp-admin/admin-ajax.php?action=afb_save_form_builder&security=' + nonceVal, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-WP-Nonce': wpNonce
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         id: 0,
@@ -122,26 +158,24 @@ class Class_Admin_Menu {
                         form_fields: mockupFields
                     })
                 })
-                .then(res => {
-                    console.log('Статус ответа сервера:', res.status);
-                    return res.json();
-                })
-                .then(data => {
-                    if (data.success) {
+                .then(res => res.json())
+                .then(resData => {
+                    // WordPress AJAX возвращает структуру { success: true/false, data: { ... } }
+                    if (resData.success) {
                         responseDiv.style.backgroundColor = '#edfaef';
                         responseDiv.style.color = '#00a32a';
-                        responseDiv.innerHTML = `🎉 Успех! ${data.message} <br>Создан новый Form ID: <strong>${data.id}</strong>`;
+                        responseDiv.innerHTML = `🎉 Успех! ${resData.data.message} <br>Создан Form ID: <strong>${resData.data.id}</strong>`;
                         builderForm.reset();
                     } else {
                         responseDiv.style.backgroundColor = '#fcf0f1';
                         responseDiv.style.color = '#d63638';
-                        responseDiv.innerText = data.error || 'Произошла ошибка при сохранении.';
+                        responseDiv.innerText = (resData.data && resData.data.error) ? resData.data.error : 'Ошибка сохранения.';
                     }
                 })
                 .catch(err => {
                     responseDiv.style.backgroundColor = '#fcf0f1';
                     responseDiv.style.color = '#d63638';
-                    responseDiv.innerText = 'Сбой запроса: ' + err.message;
+                    responseDiv.innerText = 'Сбой сети: ' + err.message;
                 });
             });
         });
@@ -149,19 +183,14 @@ class Class_Admin_Menu {
         <?php
     }
 
-    /**
-     * Рендеринг страницы со списком заявок через WP_List_Table
-     */
     public function render_entries_page() {
         require_once AFB_PATH . 'includes/admin/class-entries-list-table.php';
-
         $entries_table = new Class_Entries_List_Table();
         $entries_table->prepare_items();
         ?>
         <div class="wrap">
             <h1 class="wp-heading-inline"><?php _e( 'Заявки из форм (Entries)', 'advanced-forms-builder' ); ?></h1>
             <hr class="wp-header-end">
-
             <form method="get">
                 <input type="hidden" name="page" value="afb-entries" />
                 <?php $entries_table->display(); ?>
