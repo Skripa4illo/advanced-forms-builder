@@ -12,14 +12,23 @@ class Class_Form_Handler {
 	}
 
 	/**
-	 * Регистрация эндпоинта: /wp-json/afb/v1/submit/
+	 * Регистрация эндпоинтов
 	 */
 	public function register_routes() {
+
+	// Эндпоинт для отправки данных из формы
 		register_rest_route( 'afb/v1', '/submit', [
 			'methods'             => 'POST',
 			'callback'            => [ $this, 'handle_form_submission' ],
 			'permission_callback' => [ $this, 'check_permission' ], // Проверка безопасности
 		] );
+		
+		// Сохранение структуры формы из конструктора
+        register_rest_route( 'afb/v1', '/forms/save', [
+            'methods'             => 'POST',
+            'callback'            => [ $this, 'handle_save_form' ],
+            'permission_callback' => [ $this, 'check_admin_permission' ], // Тут проверка прав админа!
+        ] );
 	}
 
 	/**
@@ -30,6 +39,14 @@ class Class_Form_Handler {
 		// и спокойно протестировать отправку формы с фронтенда.
 		return true;
 	}
+	
+	/**
+     * Проверка безопасности: сохранять формы может ТОЛЬКО админ
+     */
+    public function check_admin_permission() {
+        // current_user_can проверяет права текущего авторизованного в WP пользователя
+        return current_user_can( 'manage_options' );
+    }
 
 	/**
 	 * Основная логика обработки данных формы
@@ -94,6 +111,72 @@ class Class_Form_Handler {
 			'entry_id' => $entry_id
 		], 200 );
 	}
+
+	/**
+     * Логика сохранения структуры формы из конструктора
+     */
+    public function handle_save_form( WP_REST_Request $request ) {
+        global $wpdb;
+        $table_forms = $wpdb->prefix . 'afb_forms';
+
+        // Получаем JSON из тела запроса
+        $params = $request->get_json_params();
+        
+        $form_id = isset( $params['id'] ) ? absint( $params['id'] ) : 0;
+        $title   = isset( $params['title'] ) ? sanitize_text_field( $params['title'] ) : '';
+        $fields  = isset( $params['form_fields'] ) ? $params['form_fields'] : [];
+
+        if ( empty( $title ) ) {
+            return new WP_REST_Response( [ 'error' => 'Title is required' ], 400 );
+        }
+
+        // Подготавливаем JSON-строку полей для базы данных
+        $json_fields = wp_json_encode( $fields );
+
+        $data_to_save = [
+            'title'       => $title,
+            'form_fields' => $json_fields,
+            'created_at'  => current_time( 'mysql' )
+        ];
+
+        // Если id передан — это UPDATE (редактирование), если 0 — это INSERT (создание новой)
+        if ( $form_id > 0 ) {
+            $updated = $wpdb->update(
+                $table_forms,
+                $data_to_save,
+                [ 'id' => $form_id ],
+                [ '%s', '%s', '%s' ],
+                [ '%d' ]
+            );
+
+            if ( $updated === false ) {
+                return new WP_REST_Response( [ 'error' => 'Database error during update' ], 500 );
+            }
+
+            return new WP_REST_Response( [
+                'success' => true,
+                'message' => 'Форма успешно обновлена!',
+                'id'      => $form_id
+            ], 200 );
+
+        } else {
+            $inserted = $wpdb->insert(
+                $table_forms,
+                $data_to_save,
+                [ '%s', '%s', '%s' ]
+            );
+
+            if ( ! $inserted ) {
+                return new WP_REST_Response( [ 'error' => 'Database error during insert' ], 500 );
+            }
+
+            return new WP_REST_Response( [
+                'success' => true,
+                'message' => 'Новая форма успешно создана!',
+                'id'      => $wpdb->insert_id
+            ], 201 );
+        }
+    }
 
 	/**
 	 * Получение IP адреса пользователя
