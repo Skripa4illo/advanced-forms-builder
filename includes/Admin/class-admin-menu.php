@@ -29,11 +29,9 @@ class Class_Admin_Menu {
     }
 
     /**
-     * Рендеринг главной страницы плагина (Конструктор)
+     * Рендеринг главной страницы плагина (Наш Конструктор)
      */
     public function render_admin_page() {
-        // Жестко вешаем вывод JS-кода в футер ТОЛЬКО этой страницы админки
-        add_action( 'admin_print_footer_scripts', [ $this, 'render_inline_js' ] );
         ?>
         <div class="wrap">
             <h1><?php _e( 'Advanced Forms Builder — Конструктор', 'advanced-forms-builder' ); ?></h1>
@@ -43,6 +41,9 @@ class Class_Admin_Menu {
 
             <div style="background: #fff; padding: 20px; max-width: 500px; border: 1px solid #ccd0d4; margin-top: 20px; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
                 <form id="afb-admin-builder-form" onsubmit="event.preventDefault(); return false;">
+                    
+                    <input type="hidden" id="afb_admin_rest_nonce" value="<?php echo wp_create_nonce( 'wp_rest' ); ?>">
+
                     <div style="margin-bottom: 15px;">
                         <label style="display:block; font-weight:bold; margin-bottom:5px;">Название новой формы:</label>
                         <input type="text" id="afb-new-form-title" placeholder="Например: Форма в подвале" style="width:100%; padding: 8px;" required>
@@ -62,8 +63,10 @@ class Class_Admin_Menu {
             </div>
         </div>
         <?php
+        // Подключаем JS
+        $this->render_inline_js();
     }
-
+	
     /**
      * Прямой инжект скрипта в подвал WP (Обход всех багов очередей)
      */
