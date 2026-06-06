@@ -95,21 +95,38 @@ class Class_Admin_Menu {
      * Подключаем скрипты для админки плагина
      */
     public function enqueue_admin_assets( $hook ) {
-        // Загружаем скрипты ТОЛЬКО на страницах нашего плагина, чтобы не спамить на чужих экранах WP
-        if ( strpos( $hook, 'afb-forms' ) === false && strpos( $hook, 'afb-entries' ) === false ) {
-            return;
-        }
+		
+		// Выведем имя хука в консоль браузера, чтобы узнать его точное имя на будущее!
+        echo "<script>console.log('Текущий WP Hook: " . esc_js( $hook ) . "');</script>";
+        
+		// Загружаем скрипты ТОЛЬКО на страницах нашего плагина, чтобы не спамить на чужих экранах WP
+        // if ( strpos( $hook, 'afb-forms' ) === false && strpos( $hook, 'afb-entries' ) === false ) {
+        //     return;
+        // }
 
         // Встроенный скрипт ядра WP, который автоматом создаст window.wpApiSettings с валидным токеном защиты
         wp_enqueue_script( 'wp-api-js' );
-
-        // Наш кастомный JS, который управляет формой конструктора
-        wp_enqueue_script(
+		
+		// Вычисляем точный URL к папке assets/js относительно текущего файла class-admin-menu.php
+        // dirname( __FILE__ ) указывает на includes/admin, поднимаемся на уровень выше к корню плагина
+        $plugin_root_url = plugin_dir_url( dirname( dirname( __FILE__ ) ) );
+        $js_file_url     = $plugin_root_url . 'assets/js/admin-builder.js';
+		
+		wp_enqueue_script(
             'afb-admin-builder-script',
-            AFB_URL . 'assets/js/admin-builder.js',
-            [ 'jquery', 'wp-api-js' ], // wp-api-js в зависимостях гарантирует, что токен подгрузится РАНЬШЕ нашего скрипта
-            time(),
+            $js_file_url,
+            [ 'jquery', 'wp-api-js' ],
+            time(), // Защита от кэширования браузером
             true
         );
+
+        // Наш кастомный JS, который управляет формой конструктора
+        // wp_enqueue_script(
+        //     'afb-admin-builder-script',
+        //     AFB_URL . 'assets/js/admin-builder.js',
+        //     [ 'jquery', 'wp-api-js' ], // wp-api-js в зависимостях гарантирует, что токен подгрузится РАНЬШЕ нашего скрипта
+        //     time(),
+        //     true
+        // );
     }
 }
